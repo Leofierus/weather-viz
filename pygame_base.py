@@ -2,22 +2,23 @@ import time
 
 import pygame
 from tilegrabber import TileSheet
-
+from background import draw_sky, draw_tree
 
 def screen_init(bg_image_path, tile_path, width, height):
     pygame.init()
     screen = pygame.display.set_mode((width, height))
 
-    background = pygame.image.load(bg_image_path)
-    background = pygame.transform.scale(background, (width, height))
-    screen.blit(background, (0, 0))
+    # replace the sky type here
+    draw_sky("day", screen)
+    draw_tree("day", screen)
+
     pygame.display.flip()
 
     tiles = TileSheet(tile_path,16, 16, 10, 17)
     print(f"Number of usable tiles: {len(tiles.usable_tiles)}")
 
-    # tiles.draw(screen)  # Draw all tiles
-    # pygame.display.flip()
+    tiles.draw(screen)  # Draw all tiles
+    pygame.display.flip()
 
     tile_labels = [
         "surface_left_edge", "surface_filler", "surface_right_edge",
