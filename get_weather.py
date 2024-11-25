@@ -31,7 +31,7 @@ response = responses[0]
 print(f"Coordinates {response.Latitude()}°N {response.Longitude()}°E")
 print(f"Elevation {response.Elevation()} m asl")
 print(f"Timezone {response.Timezone()} {response.TimezoneAbbreviation()}")
-print(f"Timezone difference to GMT+0 {response.UtcOffsetSeconds()} s")
+print(f"Timezone difference to GMT+0 {response.UtcOffsetSeconds()} s.py")
 
 # Process hourly data. The order of variables needs to be the same as requested.
 hourly = response.Hourly()
@@ -55,8 +55,8 @@ hourly_is_day = hourly.Variables(16).ValuesAsNumpy()
 hourly_sunshine_duration = hourly.Variables(17).ValuesAsNumpy()
 
 hourly_data = {"date": pd.date_range(
-    start=pd.to_datetime(hourly.Time(), unit="s", utc=True),
-    end=pd.to_datetime(hourly.TimeEnd(), unit="s", utc=True),
+    start=pd.to_datetime(hourly.Time(), unit="s.py", utc=True),
+    end=pd.to_datetime(hourly.TimeEnd(), unit="s.py", utc=True),
     freq=pd.Timedelta(seconds=hourly.Interval()),
     inclusive="left"
 ), "temperature_2m": hourly_temperature_2m, "relative_humidity_2m": hourly_relative_humidity_2m,
