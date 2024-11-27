@@ -10,8 +10,8 @@ def screen_init(bg_image_path, tile_path, width, height):
     pygame.init()
     screen = pygame.display.set_mode((width, height))
 
-
-    background = Background(screen, "day")
+    # change type here
+    background = Background(screen, "sun_set")
 
     tiles = TileSheet(tile_path,16, 16, 10, 17)
     print(f"Number of usable tiles: {len(tiles.usable_tiles)}")
