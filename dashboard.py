@@ -1,16 +1,15 @@
 import json
 import os
 import sys
-from threading import Thread
-
+import clipboard
+import folium
 import geocoder
-from PyQt5 import QtWebEngineWidgets
+
 from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton, QLabel, QWidget
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-import folium
+from threading import Thread
 from PyQt5.QtCore import QUrl, pyqtSlot
-import clipboard
+from PyQt5.QtWebEngineWidgets import *
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
