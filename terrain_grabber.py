@@ -1,8 +1,8 @@
 import pygame
 
 
-class TileSheet:
-    def __init__(self, filename, width, height, rows, cols, assign_label=False):
+class TerrainSheet:
+    def __init__(self, filename, width, height, rows, cols):
         image = pygame.image.load(filename).convert()
         print(f"Image dimensions: {image.get_width()} x {image.get_height()}")
 

@@ -1,8 +1,9 @@
 import time
 
 import pygame
-from tilegrabber import TileSheet
+from terrain_grabber import TerrainSheet
 from background import Background
+from tile_grabber import TileSheet
 
 
 def draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width, block_height):
@@ -104,18 +105,18 @@ def generate_temperature_data(prev_hour_temp, next_hour_temp, screen_width):
     return temperature_data
 
 
-def screen_init(bg_image_path, tile_path, prev_hour_temp, next_hour_temp, cloud_type, width, height):
+def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, season, width, height):
     pygame.init()
     screen = pygame.display.set_mode((width, height))
 
     # change type here
     background = Background(screen, cloud_type)
 
-    tiles = TileSheet(tile_path,16, 16, 10, 17)
+    tiles = TerrainSheet(tile_path, 16, 16, 10, 17)
     print(f"Number of usable tiles: {len(tiles.usable_tiles)}")
 
-    tiles.draw(screen)  # Draw all tiles
-    pygame.display.flip()
+    # tiles.draw(screen)
+    # pygame.display.flip()
 
     tile_labels = [
         "surface_left_edge", "surface_filler", "surface_right_edge",
@@ -127,11 +128,19 @@ def screen_init(bg_image_path, tile_path, prev_hour_temp, next_hour_temp, cloud_
     # tiles.draw(screen, with_labels=True, padding=20)  # Draw labeled tiles
     # pygame.display.flip()
 
+    trees = TileSheet("misc/trees", season)
+    leaves = TileSheet("misc/leaves", season)
+    house = TileSheet("misc/houses", season)
+
+    # trees_2.draw(screen)
+    # pygame.display.flip()
+    # time.sleep(5)
+
     # Make sure temp data is in Celsius
     temperature_data = generate_temperature_data(prev_hour_temp, next_hour_temp, width//16 + 1)
 
     start_x = 0
-    start_y = int(height * 0.75)
+    start_y = int(height * 0.85)
     block_width = 16
     block_height = 16
 
@@ -139,6 +148,9 @@ def screen_init(bg_image_path, tile_path, prev_hour_temp, next_hour_temp, cloud_
     while run:
         background.draw_sky()
         surface_positions = draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width, block_height)
+        house.draw(screen, scale_factor=0.5)
+        trees.draw(screen)
+        leaves.draw(screen, scale_factor=5)
         pygame.display.flip()
 
         # replace the sky type here
@@ -151,10 +163,9 @@ def screen_init(bg_image_path, tile_path, prev_hour_temp, next_hour_temp, cloud_
 
 
 if __name__ == "__main__":
-    # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/1 - Grassland/Terrain (16 x 16).png"
+    tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/1 - Grassland/Terrain (16 x 16).png"
     # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/2 - Autumn Forest/Terrain (16 x 16).png"
     # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/3 - Tropics/Terrain (16 x 16).png"
-    tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/4 - Winter World/Terrain (16 x 16).png"
+    # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/4 - Winter World/Terrain (16 x 16).png"
 
-    image_path = "BG Images/free-nature-pixel-backgrounds-for-games/nature 4/origbig.png"
-    screen_init(image_path, tile_path, 26, 31, "dark_clouds", 1200, 800)
+    screen_init(tile_path, 28, 31, "dark_clouds", "Summer", 1200, 800)
