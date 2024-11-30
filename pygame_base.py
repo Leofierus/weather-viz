@@ -8,7 +8,13 @@ from background import Background
 def draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width, block_height):
     screen_width = screen.get_width()
     screen_height = screen.get_height()
-    x = start_x-block_width
+    if temperature_data[0] > temperature_data[-1]:
+        change = "decline"
+        x = start_x
+    else:
+        change = "incline"
+        x = start_x-block_width
+
     y = start_y
 
     surface_tile = tiles.get_tile_by_label("surface_filler")
@@ -27,22 +33,40 @@ def draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width,
         temp_diff = temperature_data[i] - temperature_data[i + 1]
         steps = int(temp_diff)  # Map temperature difference to steps
 
-        if steps > 0:  # Decline
-            for _ in range(steps):
-                x += block_width
-                y += block_height  # Move downward
-                screen.blit(decline_tile, (x, y))
+        if change == "incline":
+            if steps > 0:  # Decline
+                for _ in range(steps):
+                    x += block_width
+                    y += block_height  # Move downward
+                    screen.blit(decline_tile, (x, y))
+                    surface_positions.append((x, y))
+            elif steps < 0:  # Incline
+                for _ in range(abs(steps)):
+                    x += block_width
+                    y -= block_height  # Move upward
+                    screen.blit(incline_tile, (x, y))
+                    surface_positions.append((x, y))
+            else:  # Flat
+                x += block_width  # Move horizontally
+                screen.blit(surface_tile, (x, y))
                 surface_positions.append((x, y))
-        elif steps < 0:  # Incline
-            for _ in range(abs(steps)):
-                x += block_width
-                y -= block_height  # Move upward
-                screen.blit(incline_tile, (x, y))
+        else:
+            if steps > 0:  # Decline
+                for _ in range(steps):
+                    screen.blit(decline_tile, (x, y))
+                    surface_positions.append((x, y))
+                    x += block_width
+                    y += block_height  # Move downward
+            elif steps < 0:  # Incline
+                for _ in range(abs(steps)):
+                    screen.blit(incline_tile, (x, y))
+                    surface_positions.append((x, y))
+                    x += block_width
+                    y -= block_height  # Move upward
+            else:  # Flat
+                screen.blit(surface_tile, (x, y))
                 surface_positions.append((x, y))
-        else:  # Flat
-            x += block_width  # Move horizontally
-            screen.blit(surface_tile, (x, y))
-            surface_positions.append((x, y))
+                x += block_width  # Move horizontally
 
         # Ensure we stop drawing at the screen boundary
         if x >= screen.get_width():
@@ -76,17 +100,16 @@ def draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width,
 def generate_temperature_data(prev_hour_temp, next_hour_temp, screen_width):
     step = (next_hour_temp - prev_hour_temp) / (screen_width - 1)
     temperature_data = [int(prev_hour_temp + step * i) for i in range(screen_width)]
-    print(f"Temperature data: {temperature_data}")
 
     return temperature_data
 
 
-def screen_init(bg_image_path, tile_path, width, height):
+def screen_init(bg_image_path, tile_path, prev_hour_temp, next_hour_temp, cloud_type, width, height):
     pygame.init()
     screen = pygame.display.set_mode((width, height))
 
     # change type here
-    background = Background(screen, "dark_clouds")
+    background = Background(screen, cloud_type)
 
     tiles = TileSheet(tile_path,16, 16, 10, 17)
     print(f"Number of usable tiles: {len(tiles.usable_tiles)}")
@@ -103,9 +126,8 @@ def screen_init(bg_image_path, tile_path, width, height):
 
     # tiles.draw(screen, with_labels=True, padding=20)  # Draw labeled tiles
     # pygame.display.flip()
-    prev_hour_temp = 25
-    next_hour_temp = 28
 
+    # Make sure temp data is in Celsius
     temperature_data = generate_temperature_data(prev_hour_temp, next_hour_temp, width//16 + 1)
 
     start_x = 0
@@ -135,4 +157,4 @@ if __name__ == "__main__":
     tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/4 - Winter World/Terrain (16 x 16).png"
 
     image_path = "BG Images/free-nature-pixel-backgrounds-for-games/nature 4/origbig.png"
-    screen_init(image_path, tile_path, 1200, 800)
+    screen_init(image_path, tile_path, 26, 31, "dark_clouds", 1200, 800)
