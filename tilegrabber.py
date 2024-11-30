@@ -35,6 +35,9 @@ class TileSheet:
                 return False
         return True
 
+    def get_tile_by_label(self, label):
+        return self.tile_labels[label]
+
     def draw(self, screen, with_labels=False, scale_factor=2, padding=5):
         if with_labels:
             screen.fill((0, 0, 0))  # Clear the screen with black
