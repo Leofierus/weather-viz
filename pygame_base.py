@@ -154,7 +154,6 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, season, w
     # pygame.display.flip()
     # time.sleep(5)
 
-    # Make sure temp data is in Celsius
     temperature_data = generate_temperature_data(prev_hour_temp, next_hour_temp, width//16 + 1)
 
     start_x = 0
@@ -207,4 +206,5 @@ if __name__ == "__main__":
     # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/3 - Tropics/Terrain (16 x 16).png"
     tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/4 - Winter World/Terrain (16 x 16).png"
 
-    screen_init(tile_path, 28, 31, "dark_clouds", "Spring", 1200, 800)
+    # Make sure temp data is in Celsius
+    screen_init(tile_path, 25, 31, "dark_clouds", "Spring", 1200, 800)
