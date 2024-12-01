@@ -1,3 +1,4 @@
+import random
 import time
 
 import pygame
@@ -99,8 +100,12 @@ def draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width,
 
 
 def generate_temperature_data(prev_hour_temp, next_hour_temp, screen_width):
-    step = (next_hour_temp - prev_hour_temp) / (screen_width - 1)
-    temperature_data = [int(prev_hour_temp + step * i) for i in range(screen_width)]
+    temperature_data = [int(prev_hour_temp)] * 20
+
+    remaining_width = screen_width - 20
+    if remaining_width > 0:
+        step = (next_hour_temp - prev_hour_temp) / remaining_width
+        temperature_data += [int(prev_hour_temp + step * i) for i in range(1, remaining_width + 1)]
 
     return temperature_data
 
@@ -128,9 +133,22 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, season, w
     # tiles.draw(screen, with_labels=True, padding=20)  # Draw labeled tiles
     # pygame.display.flip()
 
-    trees = TileSheet("misc/trees", season)
-    leaves = TileSheet("misc/leaves", season)
     house = TileSheet("misc/houses", season)
+    house_data = house.get_data()
+
+    leaves = TileSheet("misc/leaves", season)
+    leaf_data = leaves.get_data()
+
+    trees = TileSheet("misc/trees", season)
+    tree_data = trees.get_data()
+    bushes = [key for key in tree_data.keys() if key.startswith("bush")]
+    trees_list = [key for key in tree_data.keys() if key.startswith("tree")]
+
+    if len(bushes) < 2 or len(trees_list) < 2:
+        raise ValueError("Not enough bushes or trees available in the tileset.")
+
+    selected_bushes = random.sample(bushes, 2)
+    selected_trees = random.sample(trees_list, 2)
 
     # trees_2.draw(screen)
     # pygame.display.flip()
@@ -143,14 +161,35 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, season, w
     start_y = int(height * 0.85)
     block_width = 16
     block_height = 16
+    vegetation_positions = []
+    right_terrain_start = int(width / 4)
+
+    surface_positions = draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width, block_height)
+    for surface_x, surface_y in surface_positions:
+        if surface_x >= right_terrain_start:
+            if random.random() > 0.7:
+                tree_key = random.choice(selected_trees)
+                vegetation_positions.append((tree_key, surface_x, surface_y - 126, 1.3))
+            else:
+                bush_key = random.choice(selected_bushes)
+                vegetation_positions.append((bush_key, surface_x, surface_y - 15, 0.7))
+
+    # Jumble up vegetation positions
+    random.shuffle(vegetation_positions)
 
     run = True
     while run:
+        # screen.fill((0, 0, 0))
+        draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width, block_height)
         background.draw_sky()
-        surface_positions = draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width, block_height)
-        house.draw(screen, scale_factor=0.5)
-        trees.draw(screen)
-        leaves.draw(screen, scale_factor=5)
+        house.draw_by_key(screen, season, start_x + 21, start_y - (house_data[season][1]*0.9 - 6), scale_factor=0.9)
+        # trees.draw(screen)
+
+        for vegetation_key, x, y, scale in vegetation_positions:
+            trees.draw_by_key(screen, vegetation_key, x, y, scale_factor=scale)
+
+        # if season != "Winter":
+        #     leaves.draw(screen, scale_factor=5)
         pygame.display.flip()
 
         # replace the sky type here
@@ -163,9 +202,9 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, season, w
 
 
 if __name__ == "__main__":
-    tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/1 - Grassland/Terrain (16 x 16).png"
+    # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/1 - Grassland/Terrain (16 x 16).png"
     # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/2 - Autumn Forest/Terrain (16 x 16).png"
     # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/3 - Tropics/Terrain (16 x 16).png"
-    # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/4 - Winter World/Terrain (16 x 16).png"
+    tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/4 - Winter World/Terrain (16 x 16).png"
 
-    screen_init(tile_path, 28, 31, "dark_clouds", "Summer", 1200, 800)
+    screen_init(tile_path, 28, 31, "dark_clouds", "Spring", 1200, 800)
