@@ -110,12 +110,12 @@ def generate_temperature_data(prev_hour_temp, next_hour_temp, screen_width):
     return temperature_data
 
 
-def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, season, width, height):
+def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_type, season, width, height):
     pygame.init()
     screen = pygame.display.set_mode((width, height))
 
     # change type here
-    background = Background(screen, cloud_type)
+    background = Background(screen, cloud_type, mountain_type)
 
     tiles = TerrainSheet(tile_path, 16, 16, 10, 17)
     print(f"Number of usable tiles: {len(tiles.usable_tiles)}")
@@ -179,8 +179,9 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, season, w
     run = True
     while run:
         # screen.fill((0, 0, 0))
-        draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width, block_height)
         background.draw_sky()
+        background.draw_mountains()
+        draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width, block_height)
         house.draw_by_key(screen, season, start_x + 21, start_y - (house_data[season][1]*0.9 - 6), scale_factor=0.9)
         # trees.draw(screen)
 
@@ -207,4 +208,4 @@ if __name__ == "__main__":
     tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/4 - Winter World/Terrain (16 x 16).png"
 
     # Make sure temp data is in Celsius
-    screen_init(tile_path, 25, 31, "dark_clouds", "Spring", 1200, 800)
+    screen_init(tile_path, 25, 31, "night", "rocky", "Spring", 1200, 800)
