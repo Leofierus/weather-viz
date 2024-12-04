@@ -33,7 +33,7 @@ class Background:
         self.mountain_scroll = 0
         if mountain_type == "winter":
             self.mountain_path = f'BG Images/mountains/winter/'
-            self.mountain_num_images = 1
+            self.mountain_num_images = 3
             self.mountain_scale = 2
             self.base_h = 140
             self.base_shift = 0.2
