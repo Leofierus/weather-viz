@@ -208,4 +208,4 @@ if __name__ == "__main__":
     tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/4 - Winter World/Terrain (16 x 16).png"
 
     # Make sure temp data is in Celsius
-    screen_init(tile_path, 25, 31, "night", "rocky", "Spring", 1200, 800)
+    screen_init(tile_path, 25, 31, "day", "day", "Spring", 1200, 800)
