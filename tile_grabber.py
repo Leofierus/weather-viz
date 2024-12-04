@@ -1,3 +1,5 @@
+import random
+
 import pygame
 import os
 
@@ -5,6 +7,7 @@ import os
 class TileSheet:
     def __init__(self, folder_path, season):
         self.tiles = {}
+        self.active_leaves = []
         season_folder = str(os.path.join(folder_path, season))
 
         if not os.path.exists(season_folder):
@@ -57,3 +60,43 @@ class TileSheet:
             screen.blit(tile, (x, y))
         else:
             print(f"Tile with key '{key}' not found.")
+
+    def animate_leaves(self, screen, speed, number_of_leaves, bottom_edge):
+        screen_width, screen_height = screen.get_size()
+
+        # Initialize leaves if it's the first frame
+        if not self.active_leaves:
+            for _ in range(number_of_leaves):
+                leaf_key = random.choice(list(self.tiles.keys()))  # Random leaf
+                x = random.randint(0, screen_width + 100)  # Spread horizontally across screen
+                y = random.randint(0, bottom_edge)  # Random vertical position
+                scale_factor = random.uniform(0.1, 1.0)  # Random size variation
+                leaf_speed = random.uniform(speed - 3, speed + 3)  # Random speed per leaf
+                self.active_leaves.append({
+                    "key": leaf_key,
+                    "x": x,
+                    "y": y,
+                    "scale": scale_factor,
+                    "speed": leaf_speed  # Store speed individually for each leaf
+                })
+        # Update and draw each leaf
+        for leaf in self.active_leaves:
+            leaf["x"] -= leaf["speed"]  # Use each leaf's individual speed
+            self.draw_by_key(screen, leaf["key"], leaf["x"], leaf["y"], leaf["scale"])
+
+        # Remove leaves that are out of bounds
+        self.active_leaves = [leaf for leaf in self.active_leaves if leaf["x"] + 20 > 0]  # Assuming leaf width <= 20
+
+        while len(self.active_leaves) < number_of_leaves:
+            leaf_key = random.choice(list(self.tiles.keys()))  # Random leaf
+            x = random.randint(screen_width, screen_width + 100)  # Start off-screen
+            y = random.randint(0, bottom_edge)  # Random vertical position
+            scale_factor = random.uniform(0.5, 1.5)  # Random size variation
+            leaf_speed = random.uniform(speed - 1, speed + 1)  # Random speed per leaf
+            self.active_leaves.append({
+                "key": leaf_key,
+                "x": x,
+                "y": y,
+                "scale": scale_factor,
+                "speed": leaf_speed
+            })

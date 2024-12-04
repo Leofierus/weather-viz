@@ -15,7 +15,7 @@ def draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width,
         x = start_x
     else:
         change = "incline"
-        x = start_x-block_width
+        x = start_x - block_width
 
     y = start_y
 
@@ -110,7 +110,182 @@ def generate_temperature_data(prev_hour_temp, next_hour_temp, screen_width):
     return temperature_data
 
 
-def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_type, season, width, height):
+def add_weather(screen, is_windy, wind_speed, weather_type, number_of_particles):
+    screen_width, screen_height = screen.get_size()
+    if not hasattr(add_weather, "active_particles"):
+        add_weather.active_particles = []
+
+    # Weather assets
+    rain_drop = pygame.image.load("misc/weather/rain_drop.png").convert_alpha()
+    snowflake_soft = pygame.image.load("misc/weather/snowflake_soft.png").convert_alpha()
+    snowflake_hard = pygame.image.load("misc/weather/snowflake_hard.png").convert_alpha()
+
+    max_slant = min(45, 5 + wind_speed)
+    slant_angle = random.uniform(5, max_slant)
+    slant = -slant_angle if random.choice([True, True, True, True, False]) else slant_angle
+
+    # Create new particles
+    while len(add_weather.active_particles) < number_of_particles:
+        x = random.randint(0, screen_width)
+        y = random.randint(-50, 0)
+        size = random.uniform(0.3, 1.0)
+        speed = random.uniform(1, 3) + (wind_speed / 10)
+        if weather_type == "rain":
+            add_weather.active_particles.append({
+                "image": rain_drop,
+                "x": x,
+                "y": y,
+                "size": size,
+                "speed_x": slant / 10,
+                "speed_y": speed * 4.0,
+            })
+        elif weather_type == "light_snow":
+            add_weather.active_particles.append({
+                "image": snowflake_soft,
+                "x": x,
+                "y": y,
+                "size": size,
+                "speed_x": slant / 15,
+                "speed_y": speed * 0.5,
+            })
+        elif weather_type == "heavy_snow":
+            add_weather.active_particles.append({
+                "image": snowflake_hard,
+                "x": x,
+                "y": y,
+                "size": size,
+                "speed_x": slant / 12,
+                "speed_y": speed * 1.2,
+            })
+        elif weather_type == "mix":
+            if random.random() < 0.5:
+                particle_image = random.choice([rain_drop])
+                add_weather.active_particles.append({
+                    "image": particle_image,
+                    "x": x,
+                    "y": y,
+                    "size": size,
+                    "speed_x": slant / 13,
+                    "speed_y": speed * 4.0,
+                })
+            else:
+                particle_image = random.choice([snowflake_soft, snowflake_hard])
+                add_weather.active_particles.append({
+                    "image": particle_image,
+                    "x": x,
+                    "y": y,
+                    "size": size,
+                    "speed_x": slant / 13,
+                    "speed_y": speed * 1.2,
+                })
+
+    for particle in add_weather.active_particles:
+        particle["x"] += particle["speed_x"]
+        particle["y"] += particle["speed_y"]
+
+        scaled_particle = pygame.transform.scale(
+            particle["image"],
+            (
+                int(particle["image"].get_width() * particle["size"]),
+                int(particle["image"].get_height() * particle["size"]),
+            )
+        )
+        screen.blit(scaled_particle, (particle["x"], particle["y"]))
+
+    add_weather.active_particles = [
+        particle for particle in add_weather.active_particles
+        if particle["x"] > -50 and particle["x"] < screen_width + 50 and particle["y"] < screen_height
+    ]
+
+
+def add_thunder(screen, surface_positions, number):
+    screen_width, screen_height = screen.get_size()
+    upper_third = screen_height // 4
+
+    if not hasattr(add_thunder, "lightning_animations"):
+        add_thunder.lightning_animations = {
+            1: [pygame.image.load(f"misc/lightning/lightning_1/{i}.png").convert_alpha() for i in range(1, 10)],
+            2: [pygame.image.load(f"misc/lightning/lightning_2/{i}.png").convert_alpha() for i in range(1, 17)],
+            3: [pygame.image.load(f"misc/lightning/lightning_3/{i}.png").convert_alpha() for i in range(1, 10)],
+            4: [pygame.image.load(f"misc/lightning/lightning_4/{i}.png").convert_alpha() for i in range(1, 10)],
+        }
+        add_thunder.last_strike_time = 0
+        add_thunder.active_strikes = []
+
+    current_time = pygame.time.get_ticks() / 1000
+    interval = 10 / number
+
+    if current_time - add_thunder.last_strike_time > interval:
+        strike_type = random.choice([1, 2, 3, 4])
+        animation_frames = add_thunder.lightning_animations[strike_type]
+        duration = len(animation_frames) * 0.1
+
+        if strike_type in [1, 2]:
+            x = random.randint(0, screen_width)
+            add_thunder.active_strikes.append({
+                "type": "cloud_to_land",
+                "x_start": x,
+                "y_start": 0,
+                "y_end": add_thunder.lightning_animations[strike_type][2].get_height(),
+                "frames": animation_frames,
+                "current_frame": 0,
+                "start_time": current_time,
+                "duration": duration,
+            })
+        else:
+            x_start = random.randint(0, screen_width)
+            x_end = 16 + x_start
+            y_level = random.randint(0, upper_third)
+            add_thunder.active_strikes.append({
+                "type": "cloud_to_cloud",
+                "x_start": x_start,
+                "y_start": y_level,
+                "x_end": x_end,
+                "y_end": y_level,
+                "frames": animation_frames,
+                "current_frame": 0,
+                "start_time": current_time,
+                "duration": duration,
+            })
+        add_thunder.last_strike_time = current_time
+
+    for strike in add_thunder.active_strikes:
+        elapsed_time = current_time - strike["start_time"]
+        if elapsed_time > strike["duration"]:
+            continue
+
+        frame_index = int(elapsed_time / 0.1)
+        if frame_index < len(strike["frames"]):
+            strike["current_frame"] = frame_index
+            frame = strike["frames"][frame_index]
+
+            if strike["type"] == "cloud_to_land":
+                x = strike["x_start"]
+                y_start = strike["y_start"]
+                y_end = strike["y_end"]
+                frame_height = frame.get_height()
+
+                for y in range(y_start, y_end, frame_height):
+                    screen.blit(frame, (x, y))
+            elif strike["type"] == "cloud_to_cloud":
+                x_start = strike["x_start"]
+                y_start = strike["y_start"]
+                x_end = strike["x_end"]
+                y_end = strike["y_end"]
+
+                for i in range(frame_index + 1):
+                    x = x_start + (x_end - x_start) * (i / len(strike["frames"]))
+                    y = y_start + (y_end - y_start) * (i / len(strike["frames"]))
+                    screen.blit(frame, (x, y))
+
+    add_thunder.active_strikes = [
+        strike for strike in add_thunder.active_strikes
+        if current_time - strike["start_time"] < strike["duration"]
+    ]
+
+
+def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_type, season, is_windy, wind_speed,
+                is_lightning, width, height):
     pygame.init()
     screen = pygame.display.set_mode((width, height))
 
@@ -154,7 +329,7 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_
     # pygame.display.flip()
     # time.sleep(5)
 
-    temperature_data = generate_temperature_data(prev_hour_temp, next_hour_temp, width//16 + 1)
+    temperature_data = generate_temperature_data(prev_hour_temp, next_hour_temp, width // 16 + 1)
 
     start_x = 0
     start_y = int(height * 0.85)
@@ -164,6 +339,7 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_
     right_terrain_start = int(width / 4)
 
     surface_positions = draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width, block_height)
+    min_y = min([y for _, y in surface_positions])
     for surface_x, surface_y in surface_positions:
         if surface_x >= right_terrain_start:
             if random.random() > 0.7:
@@ -182,11 +358,18 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_
         background.draw_sky()
         background.draw_mountains()
         draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width, block_height)
-        house.draw_by_key(screen, season, start_x + 21, start_y - (house_data[season][1]*0.9 - 6), scale_factor=0.9)
+        house.draw_by_key(screen, season, start_x + 21, start_y - (house_data[season][1] * 0.9 - 6), scale_factor=0.9)
         # trees.draw(screen)
 
         for vegetation_key, x, y, scale in vegetation_positions:
             trees.draw_by_key(screen, vegetation_key, x, y, scale_factor=scale)
+
+        if is_windy:
+            leaves.animate_leaves(screen, wind_speed, 70, min_y)
+
+        add_weather(screen, is_windy, wind_speed, "rain", 900)
+        if is_lightning:
+            add_thunder(screen, surface_positions, 15)
 
         # if season != "Winter":
         #     leaves.draw(screen, scale_factor=5)
@@ -202,10 +385,12 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_
 
 
 if __name__ == "__main__":
-    # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/1 - Grassland/Terrain (16 x 16).png"
-    # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/2 - Autumn Forest/Terrain (16 x 16).png"
-    # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/3 - Tropics/Terrain (16 x 16).png"
-    tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/4 - Winter World/Terrain (16 x 16).png"
+    # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/1 - Grassland/Terrain (16 x 16).png"  # Spring
+    # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/2 - Autumn Forest/Terrain (16 x 16).png"  # Fall
+    # tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/3 - Tropics/Terrain (16 x 16).png"  # Summer
+    tile_path = "tiles/Seasonal Tilesets/Seasonal Tilesets/4 - Winter World/Terrain (16 x 16).png"  # Winter
 
     # Make sure temp data is in Celsius
-    screen_init(tile_path, 25, 31, "day", "day", "Spring", 1200, 800)
+    # If is_windy=True, wind_speed should be greater than 3
+    screen_init(tile_path, 25, 31, "cloudy", "rocky", "Winter",
+                False, True, 10, 1200, 800)
