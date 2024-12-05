@@ -127,7 +127,7 @@ def add_weather(screen, is_windy, wind_speed, weather_type, number_of_particles)
     # Create new particles
     while len(add_weather.active_particles) < number_of_particles:
         x = random.randint(0, screen_width)
-        y = random.randint(-50, 0)
+        y = random.randint(-500, 0)
         size = random.uniform(0.3, 1.0)
         speed = random.uniform(1, 3) + (wind_speed / 10)
         if weather_type == "rain":
@@ -155,7 +155,7 @@ def add_weather(screen, is_windy, wind_speed, weather_type, number_of_particles)
                 "y": y,
                 "size": size,
                 "speed_x": slant / 12,
-                "speed_y": speed * 1.2,
+                "speed_y": speed * 4.2,
             })
         elif weather_type == "mix":
             if random.random() < 0.5:
@@ -285,7 +285,7 @@ def add_thunder(screen, surface_positions, number):
 
 
 def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_type, season, is_windy, wind_speed,
-                is_lightning, width, height):
+                is_lightning, number_of_strikes_10s, weather_effects, weather_type, weather_intensity, width, height):
     pygame.init()
     screen = pygame.display.set_mode((width, height))
 
@@ -367,15 +367,14 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_
         if is_windy:
             leaves.animate_leaves(screen, wind_speed, 70, min_y)
 
-        add_weather(screen, is_windy, wind_speed, "rain", 900)
-        if is_lightning:
-            add_thunder(screen, surface_positions, 15)
+        if weather_effects:
+            add_weather(screen, is_windy, wind_speed, weather_type, weather_intensity*1000)
 
-        # if season != "Winter":
-        #     leaves.draw(screen, scale_factor=5)
+        if is_lightning:
+            add_thunder(screen, surface_positions, number_of_strikes_10s)
+
         pygame.display.flip()
 
-        # replace the sky type here
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -392,5 +391,9 @@ if __name__ == "__main__":
 
     # Make sure temp data is in Celsius
     # If is_windy=True, wind_speed should be greater than 3
+    # Number_of_strikes_10s = Number of lightning strikes in 10 seconds
+    # Weather_intensity = Number of particles * 1000 on the screen
+    # Weather_type = rain, light_snow or heavy_snow
     screen_init(tile_path, 25, 31, "cloudy", "rocky", "Winter",
-                False, True, 10, 1200, 800)
+                True, 40, True, 15, True,
+                "rain", 10, 1200, 800)
