@@ -284,8 +284,35 @@ def add_thunder(screen, surface_positions, number):
     ]
 
 
+def add_text(screen, text):
+    if not hasattr(add_text, "font_size"):
+        add_text.font_size = 27
+        add_text.increasing = True
+        add_text.max_size = 27
+        add_text.min_size = 27
+        add_text.counter = 0
+
+    if add_text.increasing and add_text.counter % 15 == 0:
+        add_text.font_size += 1
+        if add_text.font_size >= add_text.max_size:
+            add_text.increasing = False
+    elif not add_text.increasing and add_text.counter % 15 == 0:
+        add_text.font_size -= 1
+        if add_text.font_size <= add_text.min_size:
+            add_text.increasing = True
+    add_text.counter += 1
+
+    retro_font = pygame.font.Font("misc/font.ttf", add_text.font_size)
+    rendered_text = retro_font.render(text, True, (255, 255, 255))
+    screen_width, screen_height = screen.get_size()
+    text_position = (10, screen_height - rendered_text.get_height() - 10)
+
+    screen.blit(rendered_text, text_position)
+
+
 def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_type, season, is_windy, wind_speed,
-                is_lightning, number_of_strikes_10s, weather_effects, weather_type, weather_intensity, width, height):
+                is_lightning, number_of_strikes_10s, weather_effects, weather_type, weather_intensity, screen_text,
+                width, height):
     pygame.init()
     screen = pygame.display.set_mode((width, height))
 
@@ -353,9 +380,20 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_
     random.shuffle(vegetation_positions)
 
     run = True
+    darken = 0
+    if cloud_type in ["cloudy", "rainy", "dark_clouds"]:
+        darken = 0.4
     while run:
         # screen.fill((0, 0, 0))
         background.draw_sky()
+
+        if 0 < darken <= 1:
+            screen_width, screen_height = screen.get_size()
+            dark_surface = pygame.Surface((screen_width, screen_height))
+            dark_surface.fill((0, 0, 0))
+            dark_surface.set_alpha(int(darken * 255))
+            screen.blit(dark_surface, (0, 0))
+
         background.draw_mountains()
         draw_terrain(screen, tiles, temperature_data, start_x, start_y, block_width, block_height)
         house.draw_by_key(screen, season, start_x + 21, start_y - (house_data[season][1] * 0.9 - 6), scale_factor=0.9)
@@ -372,6 +410,8 @@ def screen_init(tile_path, prev_hour_temp, next_hour_temp, cloud_type, mountain_
 
         if is_lightning:
             add_thunder(screen, surface_positions, number_of_strikes_10s)
+
+        add_text(screen, screen_text)
 
         pygame.display.flip()
 
@@ -394,6 +434,8 @@ if __name__ == "__main__":
     # Number_of_strikes_10s = Number of lightning strikes in 10 seconds
     # Weather_intensity = Number of particles * 1000 on the screen
     # Weather_type = rain, light_snow or heavy_snow
-    screen_init(tile_path, 25, 31, "cloudy", "rocky", "Winter",
-                True, 40, True, 15, True,
-                "rain", 10, 1200, 800)
+    # Pass screen_text as a string, should have the below 3 values
+    screen_text = "Temperature: 10°C (50°F)  Wind Speed: 5 kmh (3 mph)  Rain expected"
+    screen_init(tile_path, 15, 13, "dark_clouds", "rocky", "Winter",
+                False, 40, False, 15, False,
+                "rain", 10, screen_text, 1200, 800)

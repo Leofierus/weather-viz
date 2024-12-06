@@ -1,5 +1,6 @@
 import pygame
 
+
 class Background:
     def __init__(self, screen, type, mountain_type):
         self.scroll = 0
@@ -67,17 +68,17 @@ class Background:
             self.base_shift = 0.3
             self.horizontal_shift = 30
 
-    def draw_sky(self):
+    def draw_sky(self, darken=0):
         self.speed = 0.5
-        
+
         bg_images = []
-        for i in range(1, self.num_images+1):
+        for i in range(1, self.num_images + 1):
             bg_image = pygame.image.load(f'{self.path}{i}.png').convert_alpha()
             # Get the original width and height
             original_width, original_height = bg_image.get_size()
-            
+
             # Scale the image height by 2 while maintaining aspect ratio
-            scaled_image = pygame.transform.scale(bg_image, (original_width, 1.2*original_height))
+            scaled_image = pygame.transform.scale(bg_image, (original_width, 1.2 * original_height))
             bg_images.append(scaled_image)
 
         bg_width = bg_images[0].get_width()
@@ -85,23 +86,23 @@ class Background:
         for x in range(20):
             self.speed = 1
             for bg_image in bg_images:
-                self.screen.blit(bg_image, ((x * bg_width) - self.speed*self.scroll, 0))
-                self.speed += 0.3
+                self.screen.blit(bg_image, ((x * bg_width) - self.speed * self.scroll, 0))
+                self.speed += 0.5
         self.scroll += 1
-        self.scroll = self.scroll%bg_width
-    
+        self.scroll = self.scroll % bg_width
+
     def draw_mountains(self):
         bg_images = []
         for i in range(1, self.mountain_num_images + 1):
             # Load the image
             bg_image = pygame.image.load(f'{self.mountain_path}{i}.png').convert_alpha()
-            
+
             # Get the original width and height
             original_width, original_height = bg_image.get_size()
-            
+
             # Scale the image height by 2 while maintaining aspect ratio
-            scaled_image = pygame.transform.scale(bg_image, (original_width, self.mountain_scale*original_height))
-            
+            scaled_image = pygame.transform.scale(bg_image, (original_width, self.mountain_scale * original_height))
+
             bg_images.append(scaled_image)
 
         bg_width = bg_images[0].get_width()
@@ -109,21 +110,22 @@ class Background:
 
         base_speed = self.speed
         for c in range(10):
-            y = self.base_h + (c*self.base_shift*bg_height)
-            base_speed = base_speed+1
+            y = self.base_h + (c * self.base_shift * bg_height)
+            base_speed = base_speed + 1
             for x in range(20):
                 self.speed = base_speed
                 for bg_image in bg_images:
-                    self.screen.blit(bg_image, ((x * bg_width)-self.horizontal_shift*c - self.speed*self.mountain_scroll, y)) 
-                    self.speed += 0.3
-        
+                    self.screen.blit(bg_image, (
+                    (x * bg_width) - self.horizontal_shift * c - self.speed * self.mountain_scroll, y))
+                    self.speed += 0.5
+
         self.mountain_scroll += 1
-        self.mountain_scroll = self.mountain_scroll%bg_width
+        self.mountain_scroll = self.mountain_scroll % bg_width
 
     def draw_tree(self):
 
         bg_images = []
-        for i in range(1, self.num_images+1):
+        for i in range(1, self.num_images + 1):
             bg_image = pygame.image.load(f'BG Images/summer_pine_tree_tiles.png').convert_alpha()
             bg_images.append(bg_image)
 
@@ -131,4 +133,4 @@ class Background:
 
         for x in range(5):
             for bg_image in bg_images:
-                self.screen.blit(bg_image, ((x * bg_width),500))
+                self.screen.blit(bg_image, ((x * bg_width), 500))
