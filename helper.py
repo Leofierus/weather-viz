@@ -61,6 +61,8 @@ def custom_code(popup_variable_name, map_variable_name, points):
                 [points[0], points[1]],
                 {{}}
             ).addTo(map);
+            
+            map.setView([points[0], points[1]], 20);
         }}
         addMarker({points});
         '''
