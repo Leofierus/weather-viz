@@ -1,12 +1,11 @@
 import json
 import os
 import sys
-import clipboard
 import folium
 import geocoder
+import requests
 
-from PyQt5.QtWebChannel import QWebChannel
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton, QLabel, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton, QLabel, QWidget, QLineEdit, QListWidget
 from threading import Thread
 from PyQt5.QtCore import QUrl, pyqtSlot
 from PyQt5.QtWebEngineWidgets import *
@@ -17,6 +16,7 @@ from flask_cors import CORS
 location_label = None
 address = ""
 point = [0, 0]
+API_KEY = "AIzaSyDSOpaa8Kp1ddWDhUPwwEmHxiYgLFPd-UY"
 
 # Flask App
 flask_app = Flask(__name__)
@@ -63,6 +63,8 @@ def custom_code(popup_variable_name, map_variable_name):
             ).addTo(map);
             sendLatLng(e.latlng.lat, e.latlng.lng);
         }}
+        
+        
 
         function sendLatLng(latitude, longitude) {{
 
@@ -147,6 +149,32 @@ def confirm_location():
     location_label.setText(f"Selected Location: {point}")
 
 
+def get_address_suggestion(address):
+    url = f"https://maps.googleapis.com/maps/api/place/autocomplete/json?input={address}&key={API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        result = []
+        for r in response.json().get("predictions", []):
+            result.append(r['description'])
+        global address_suggestion
+        address_suggestion.show()
+        address_suggestion.clear()
+        address_suggestion.addItems(result)
+
+def get_geocode_from_address(address):
+    address = address.text()
+    global search_box
+    search_box.setText(address)
+    url = f"https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        geocode = response.json().get("results", [])[0]['geometry']['location']
+        lat, long = round(geocode['lat'], 6), round(geocode['lng'], 6)
+        update_location_label(lat, long)
+        global address_suggestion
+        address_suggestion.hide()
+    return None
+
 @flask_app.route('/receive-coordinates', methods=['POST'])
 def receive_coordinates():
     global location_label
@@ -156,10 +184,8 @@ def receive_coordinates():
     location_label.setText(f"Selected: Latitude:{latitude}, Longitude:{longitude}")
     return jsonify({"status": "success", "message": "Coordinates received."})
 
-
 def run_flask():
     flask_app.run(debug=False, use_reloader=False)
-
 
 if __name__ == "__main__":
     flask_thread = Thread(target=run_flask)
@@ -179,6 +205,17 @@ if __name__ == "__main__":
     title_label = QLabel("Select Your Location")
     title_label.setStyleSheet("font-size: 20px; font-weight: bold;")
     layout.addWidget(title_label)
+
+    #Search Box
+    search_box = QLineEdit()
+    search_box.setPlaceholderText("Enter your address...")
+    search_box.textChanged.connect(lambda: get_address_suggestion(search_box.text()))
+    layout.addWidget(search_box)
+
+    address_suggestion = QListWidget()
+    address_suggestion.hide()
+    address_suggestion.itemClicked.connect(get_geocode_from_address)
+    layout.addWidget(address_suggestion)
 
     # Interactive Map
     map_view = create_map()
