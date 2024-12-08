@@ -12,6 +12,7 @@ from PyQt5.QtWebEngineWidgets import *
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+from helper import *
 
 location_label = None
 address = ""
@@ -30,86 +31,6 @@ def get_current_location():
         address = current_location.address
 
 
-def find_map_variable_name(html, pattern):
-    starting_index = html.find(pattern) + 4
-    tmp_html = html[starting_index:]
-    ending_index = tmp_html.find(" =") + starting_index
-    return html[starting_index:ending_index]
-
-
-def find_popup_variable_name(html):
-    pattern = "var lat_lng"
-    starting_index = html.find(pattern) + 4
-    tmp_html = html[starting_index:]
-    ending_index = tmp_html.find(" =") + starting_index
-    return html[starting_index:ending_index]
-
-
-def custom_code(popup_variable_name, map_variable_name):
-    return f'''
-        // custom code
-        let currentMarker = null;
-
-        function latLngPop(e) {{
-            {popup_variable_name}
-            let map = {map_variable_name};
-            if(currentMarker){{
-                map.removeLayer(currentMarker);
-            }}
-
-            currentMarker = L.marker(
-                [e.latlng.lat, e.latlng.lng],
-                {{}}
-            ).addTo(map);
-            sendLatLng(e.latlng.lat, e.latlng.lng);
-        }}
-        
-        
-
-        function sendLatLng(latitude, longitude) {{
-
-            // Create the data payload
-            const data = {{ latitude: parseFloat(latitude), longitude: parseFloat(longitude) }};
-
-            // Send data to Flask server
-            fetch('http://127.0.0.1:5000/receive-coordinates', {{
-                method: 'POST',
-                headers: {{
-                    'Content-Type': 'application/json',
-                }},
-                body: JSON.stringify(data),
-            }})
-            .then(response => response.json())
-            .then(result => {{
-                console.log('Response from Flask:', result);
-            }})
-            .catch(error => {{
-                console.error('Error:', error);
-                alert('Failed to send coordinates.');
-            }});
-        }}
-    '''
-
-
-def find_popup_slice(html):
-    pattern = "function latLngPop(e)"
-    starting_index = html.find(pattern)
-    tmp_html = html[starting_index:]
-    found = 0
-    index = 0
-    opening_found = False
-    while not opening_found or found > 0:
-        if tmp_html[index] == "{":
-            found += 1
-            opening_found = True
-        elif tmp_html[index] == "}":
-            found -= 1
-
-        index += 1
-    ending_index = starting_index + index
-    return starting_index, ending_index
-
-
 def create_map():
     global point
     get_current_location()
@@ -117,24 +38,10 @@ def create_map():
     folium.LatLngPopup().add_to(map_obj)
     map_file = os.path.abspath("interactive_map.html")
     map_obj.save(map_file)
+    global web_view
     web_view = QWebEngineView()
     web_view.load(QUrl.fromLocalFile(map_file))
-
-    with open(map_file, 'r') as f:
-        html = f.read()
-
-    map_variable_name = find_map_variable_name(html, "var map_")
-    popup_variable_name = find_popup_variable_name(html)
-
-    pstart, pend = find_popup_slice(html)
-
-    with open(map_file, 'w') as f:
-        f.write(
-            html[:pstart] +
-            custom_code(popup_variable_name, map_variable_name) +
-            html[pend:]
-        )
-
+    change_map(map_file, [])
     return web_view
 
 
@@ -173,7 +80,13 @@ def get_geocode_from_address(address):
         update_location_label(lat, long)
         global address_suggestion
         address_suggestion.hide()
-    return None
+        map_file = os.path.abspath("interactive_map.html")
+        change_map(map_file, [lat, long])
+        try:
+            global web_view
+            web_view.reload()
+        except Exception as e:
+            print(e)
 
 @flask_app.route('/receive-coordinates', methods=['POST'])
 def receive_coordinates():
