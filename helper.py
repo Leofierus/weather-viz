@@ -1,3 +1,5 @@
+import pandas as pd
+
 def find_popup_slice(html, pattern):
     starting_index = html.find(pattern)
     tmp_html = html[starting_index:]
@@ -102,3 +104,10 @@ def change_map(map_file, points):
             custom_code(popup_variable_name, map_variable_name, points) +
             html[pend:]
         )
+
+def data_bins():
+    weather_df = pd.read_csv("hourly_data.csv")
+    data_dict = {
+        row['date']: row.drop('date').to_dict() for _, row in weather_df.iterrows()
+    }
+    return data_dict

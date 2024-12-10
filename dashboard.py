@@ -1,22 +1,25 @@
-import json
 import os
 import sys
+
 import folium
 import geocoder
 import requests
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton, QLabel, QWidget, QLineEdit, QListWidget
-from threading import Thread
-from PyQt5.QtCore import QUrl, pyqtSlot
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton, QLabel, QWidget, QLineEdit, \
+    QListWidget, QProgressBar, QDesktopWidget
+from PyQt5.QtCore import QUrl, QThread
 from PyQt5.QtWebEngineWidgets import *
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+from api.get_weather_api import get_weather_data_api
+from get_weather_data import DownloadDialog
 from helper import *
+from weather_data_selector import WeatherDataSelector
 
 location_label = None
 address = ""
-point = [0, 0]
+point = [-91, -181]
 API_KEY = "AIzaSyDSOpaa8Kp1ddWDhUPwwEmHxiYgLFPd-UY"
 
 # Flask App
@@ -35,6 +38,7 @@ def create_map():
     global point
     get_current_location()
     map_obj = folium.Map(location=point, zoom_start=12, control_scale=True)
+    point = [-91, -181]
     folium.LatLngPopup().add_to(map_obj)
     map_file = os.path.abspath("interactive_map.html")
     map_obj.save(map_file)
@@ -48,12 +52,28 @@ def create_map():
 def update_location_label(latitude, longitude):
     global location_label
     location_label.setText(f"Selected Location: Latitude={latitude}, Longitude={longitude}")
-    print(latitude, longitude)
 
 
 def confirm_location():
-    global location_label
-    location_label.setText(f"Selected Location: {point}")
+    if point[0] != -91 and point[1] != -181:
+        global location_label, flask_thread
+        location_label.setText(f"Selected Location: {point}")
+        try:
+            global window
+
+            window.download_window = DownloadDialog()
+            window.download_window.show()
+            window.close()
+
+            if get_weather_data_api(point[0], point[1]):
+                address = reverse_geocoding(point[0], point[1])
+                if address is not None:
+                    window.download_window.close()
+                    window.weather_data_selector_screen = WeatherDataSelector(address)
+                    window.weather_data_selector_screen.show()
+
+        except Exception as e:
+            print(e)
 
 
 def get_address_suggestion(address):
@@ -67,6 +87,25 @@ def get_address_suggestion(address):
         address_suggestion.show()
         address_suggestion.clear()
         address_suggestion.addItems(result)
+
+def reverse_geocoding(lat, long):
+    url = f"https://maps.googleapis.com/maps/api/geocode/json"
+    params = {
+        'latlng': f'{lat},{long}',  # Latitude and Longitude
+        'key': API_KEY  # Your Google API Key
+    }
+    response = requests.get(url, params=params)
+    result = response.json()
+
+    if response.status_code == 200 and result['status'] == 'OK':
+        # Get the formatted address from the response
+        formatted_address = result['results'][0]['address_components']
+        for component in result['results'][0]['address_components']:
+            if 'locality' in component['types']:
+                return component['long_name']  # Return the city name
+        return "City not found."
+    else:
+        return None
 
 def get_geocode_from_address(address):
     address = address.text()
@@ -83,25 +122,33 @@ def get_geocode_from_address(address):
         map_file = os.path.abspath("interactive_map.html")
         change_map(map_file, [lat, long])
         try:
-            global web_view
+            global web_view, point
+            point = [lat, long]
             web_view.reload()
         except Exception as e:
             print(e)
 
 @flask_app.route('/receive-coordinates', methods=['POST'])
 def receive_coordinates():
-    global location_label
+    global location_label, point
     data = request.json
     latitude = data.get('latitude')
     longitude = data.get('longitude')
+    point = [latitude, longitude]
     location_label.setText(f"Selected: Latitude:{latitude}, Longitude:{longitude}")
     return jsonify({"status": "success", "message": "Coordinates received."})
 
-def run_flask():
-    flask_app.run(debug=False, use_reloader=False)
+
+class FlaskThread(QThread):
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        flask_app.run(debug=False, use_reloader=False)
+
 
 if __name__ == "__main__":
-    flask_thread = Thread(target=run_flask)
+    flask_thread = FlaskThread()
     flask_thread.start()
 
     app = QApplication(sys.argv)
@@ -144,5 +191,12 @@ if __name__ == "__main__":
     layout.addWidget(confirm_button)
 
     central_widget.setLayout(layout)
+
+    screen_geometry = QDesktopWidget().availableGeometry()
+    window_geometry = window.frameGeometry()
+    center_point = screen_geometry.center()
+    window_geometry.moveCenter(center_point)
+    window.move(window_geometry.topLeft())
+
     window.show()
     sys.exit(app.exec_())
