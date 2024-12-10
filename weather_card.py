@@ -1,3 +1,4 @@
+import random
 import sys
 from typing import Dict, Any
 from datetime import datetime
@@ -13,7 +14,8 @@ from pygame_base import screen_init
 
 
 class WeatherCard(QWidget):
-    def __init__(self, weather_data: Dict[str, Any] = None, data: Dict[str, Any] = None):
+    def __init__(self, weather_data: Dict[str, Any] = None, data: Dict[str, Any] = None,
+                 next_hour_data: Dict[str, Any] = None):
         """
         Initialize a professional weather card with optional weather data.
 
@@ -21,6 +23,7 @@ class WeatherCard(QWidget):
         """
         super().__init__()
         self.data = data
+        self.next_hour_data = next_hour_data
         self.setWindowFlags(Qt.FramelessWindowHint)  # Frameless for modern look
         self.setAttribute(Qt.WA_TranslucentBackground)
 
@@ -58,7 +61,6 @@ class WeatherCard(QWidget):
         self.temp_label.clicked.connect(self.change_temperature)
 
         self.temp_label.setObjectName('temperatureLabel')
-
 
         temp_layout.addWidget(self.temp_label)
         grid_layout.addLayout(temp_layout, 0, 0, 2, 1)
@@ -160,11 +162,104 @@ class WeatherCard(QWidget):
             temp = float((temp * 1.8) + 32)
             self.temp_label.setText(f"{temp:.1f} °F")
         else:
-            temp = float((temp-32) * (5/9))
+            temp = float((temp - 32) * (5 / 9))
             self.temp_label.setText(f"{temp:.1f} °C")
 
     def mousePressEvent(self, event):
         ''' TODO: call with arguments '''
         print(self.data)
+        print(self.next_hour_data)
 
-        # screen_init()
+        tile_paths = {
+            "Spring": "tiles/Seasonal Tilesets/Seasonal Tilesets/1 - Grassland/Terrain (16 x 16).png",
+            "Fall": "tiles/Seasonal Tilesets/Seasonal Tilesets/2 - Autumn Forest/Terrain (16 x 16).png",
+            "Summer": "tiles/Seasonal Tilesets/Seasonal Tilesets/3 - Tropics/Terrain (16 x 16).png",
+            "Winter": "tiles/Seasonal Tilesets/Seasonal Tilesets/4 - Winter World/Terrain (16 x 16).png"
+        }
+
+        month = list(self.data.keys())[0].split()[0].split("-")[1]
+        current_hour = list(self.data.keys())[0].split()[1].split(":")[0]
+        if month in ["03", "04", "05"]:
+            season = "Spring"
+        elif month in ["06", "07", "08"]:
+            season = "Summer"
+        elif month in ["09", "10", "11"]:
+            season = "Fall"
+        else:
+            season = "Winter"
+
+        sunrise, sunset = False, False
+        if 6 <= int(current_hour) <= 8:
+            sunrise = True
+        elif 16 <= int(current_hour) <= 19:
+            sunset = True
+
+        current_temperature = self.data[list(self.data.keys())[0]]['temperature_2m']
+        next_hour_temperature = self.next_hour_data[list(self.next_hour_data.keys())[0]]['temperature_2m']
+        cloud_cover = self.data[list(self.data.keys())[0]]['cloud_cover']
+        is_day = self.data[list(self.data.keys())[0]]['is_day']
+        rain = self.data[list(self.data.keys())[0]]['rain']
+        snowfall = self.data[list(self.data.keys())[0]]['snowfall']
+        weather_effects = False
+        if rain > 0 or snowfall > 0:
+            weather_effects = True
+        weather_type = ""
+        weather_intensity = 0
+        if weather_effects:
+            if rain > 0 and snowfall > 0:
+                weather_type = "mix"
+                weather_intensity = (int(rain) + int(snowfall)) * 2
+            elif rain > 0:
+                weather_type = "rain"
+                weather_intensity = int(rain) * 2
+            elif 0 < snowfall < 5:
+                weather_type = "light_snow"
+                weather_intensity = int(snowfall) * 2
+            else:
+                weather_type = "snow"
+                weather_intensity = int(snowfall) * 3
+
+        wind_speed = self.data[list(self.data.keys())[0]]['wind_speed_10m'] + 5 \
+            if self.data[list(self.data.keys())[0]]['wind_speed_10m'] > 10 else 0
+        actual_wind_speed = self.data[list(self.data.keys())[0]]['wind_speed_10m']
+        is_windy = wind_speed > 10
+        weather_code = int(self.data[list(self.data.keys())[0]]['weather_code'])
+
+        is_lightning = weather_code > 94
+        lightning_strikes = 0
+        if weather_code == 95:
+            lightning_strikes = random.randint(1, 5)
+        elif weather_code == 96:
+            lightning_strikes = random.randint(5, 10)
+        elif 96 < weather_code < 100:
+            lightning_strikes = random.randint(10, 20)
+
+        if cloud_cover > 75 or (rain > 0 and int(is_day) != 1):
+            cloud_type = "dark_clouds"
+        elif 50 < cloud_cover <= 75:
+            cloud_type = "cloudy"
+        elif rain > 0:
+            cloud_type = "rainy"
+        elif int(is_day) != 1:
+            cloud_type = "night"
+        elif sunrise:
+            cloud_type = "sun_rise"
+        elif sunset:
+            cloud_type = "sun_set"
+        else:
+            cloud_type = "day"
+
+        if cloud_type in ["rainy", "dark_clouds", "cloudy", "night"]:
+            mountain_type = "night"
+        elif season == "Winter":
+            mountain_type = "winter"
+        else:
+            mountain_type = random.choice(["rocky", "day"])
+
+        screen_text = f"Temperature: {current_temperature:.2f}°C ({(current_temperature * 1.8 + 32):.2f}°F)  " \
+                      f"Wind Speed: {actual_wind_speed:.2f} kmh ({(actual_wind_speed * 0.621371):.2f} mph)  " \
+                      f"Rain expected: {rain:.2f} mm  Snow expected: {snowfall:.2f} cm"
+
+        screen_init(tile_paths[season], current_temperature, next_hour_temperature, cloud_type, mountain_type, season,
+                    is_windy, wind_speed, is_lightning, lightning_strikes, weather_effects, weather_type,
+                    weather_intensity, screen_text, 1200, 800)
