@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton,
     QListWidget, QProgressBar, QDesktopWidget
 from PyQt5.QtCore import QUrl, QThread
 from PyQt5.QtWebEngineWidgets import *
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -20,8 +21,9 @@ from weather_data_selector import WeatherDataSelector
 location_label = None
 address = ""
 point = [-91, -181]
-API_KEY = "AIzaSyDSOpaa8Kp1ddWDhUPwwEmHxiYgLFPd-UY"
 
+load_dotenv()
+API_KEY = os.getenv("API_KEY")
 # Flask App
 flask_app = Flask(__name__)
 CORS(flask_app)
