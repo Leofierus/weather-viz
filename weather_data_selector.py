@@ -81,18 +81,18 @@ class WeatherDataSelector(QMainWindow):
         filter_data = {}
 
         current_data = {}
-        next_hour_data = {}
+        all_data = {}
         time = str(now).split()[1].split(':')[0]
-        next_hour_time = str(now.replace(hour=now.hour + 1)).split()[1].split(':')[0]
+        print("times")
 
         for date, value in weather_data.items():
             temp = datetime.strptime(date.split('+')[0], "%Y-%m-%d %H:%M:%S")
-            if time in str(temp):
+            hour_temp = temp.hour
+            if time in str(temp) and hour_temp == now.hour:
                 current_data[date] = value
-            if next_hour_time in str(temp):
-                next_hour_data[date] = value
             if now <= temp:
                 filter_data[date] = value
+            all_data[date] = value
         weather_data = filter_data
 
         # Create a vertical layout for the main card and scroll area
@@ -111,7 +111,7 @@ class WeatherDataSelector(QMainWindow):
                 'location': location,
                 'timestamp': datetime.fromisoformat(date)
             }
-            main_card = WeatherCard(card_data, {date: val}, next_hour_data)
+            main_card = WeatherCard(card_data, {date: val}, all_data)
 
         # Center the main_card in the top row
         top_row_layout.addWidget(main_card, alignment=Qt.AlignCenter)
@@ -141,7 +141,7 @@ class WeatherDataSelector(QMainWindow):
                 'location': location,
                 'timestamp': datetime.fromisoformat(date)
             }
-            card = WeatherCard(card_data, {date: val}, next_hour_data)
+            card = WeatherCard(card_data, {date: val}, all_data)
             scroll_layout.addWidget(card)
 
         scroll_content.setLayout(scroll_layout)

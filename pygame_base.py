@@ -435,7 +435,7 @@ if __name__ == "__main__":
     # Weather_intensity = Number of particles * 1000 on the screen
     # Weather_type = rain, light_snow or heavy_snow
     # Pass screen_text as a string, should have the below 3 values
-    screen_text = "Temperature: 10°C (50°F)  Wind Speed: 5 kmh (3 mph)  Rain expected"
-    screen_init(tile_path, 15, 13, "dark_clouds", "rocky", "Winter",
-                False, 40, False, 15, False,
-                "rain", 10, screen_text, 1200, 800)
+    # screen_text = "Temperature: 15°C (50°F)  Wind Speed: 1.6 kmh (1 mph)  Rain expected"
+    # screen_init(tile_path, 15, 19, "dark_clouds", "winter", "Winter",
+    #             True, 40, True, 15, True,
+    #             "rain", 5, "", 1200, 800)

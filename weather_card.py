@@ -1,7 +1,7 @@
 import random
 import sys
 from typing import Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QFrame, QLabel,
@@ -15,7 +15,7 @@ from pygame_base import screen_init
 
 class WeatherCard(QWidget):
     def __init__(self, weather_data: Dict[str, Any] = None, data: Dict[str, Any] = None,
-                 next_hour_data: Dict[str, Any] = None):
+                 all_data: Dict[str, Any] = None):
         """
         Initialize a professional weather card with optional weather data.
 
@@ -23,7 +23,7 @@ class WeatherCard(QWidget):
         """
         super().__init__()
         self.data = data
-        self.next_hour_data = next_hour_data
+        self.all_data = all_data
         self.setWindowFlags(Qt.FramelessWindowHint)  # Frameless for modern look
         self.setAttribute(Qt.WA_TranslucentBackground)
 
@@ -166,10 +166,6 @@ class WeatherCard(QWidget):
             self.temp_label.setText(f"{temp:.1f} °C")
 
     def mousePressEvent(self, event):
-        ''' TODO: call with arguments '''
-        print(self.data)
-        print(self.next_hour_data)
-
         tile_paths = {
             "Spring": "tiles/Seasonal Tilesets/Seasonal Tilesets/1 - Grassland/Terrain (16 x 16).png",
             "Fall": "tiles/Seasonal Tilesets/Seasonal Tilesets/2 - Autumn Forest/Terrain (16 x 16).png",
@@ -195,7 +191,17 @@ class WeatherCard(QWidget):
             sunset = True
 
         current_temperature = self.data[list(self.data.keys())[0]]['temperature_2m']
-        next_hour_temperature = self.next_hour_data[list(self.next_hour_data.keys())[0]]['temperature_2m']
+        current_hour_str = list(self.data.keys())[0]
+        current_hour_dt = datetime.fromisoformat(current_hour_str)
+        next_hour_dt = current_hour_dt + timedelta(hours=1)
+        next_hour_str = next_hour_dt.isoformat().replace("T", " ")
+        next_hour_temperature = self.all_data.get(next_hour_str, {}).get('temperature_2m', current_temperature)
+        if abs(current_temperature - next_hour_temperature) > 0.5:
+            if next_hour_temperature > current_temperature:
+                next_hour_temperature += 1
+            elif next_hour_temperature < current_temperature:
+                current_temperature += 1
+
         cloud_cover = self.data[list(self.data.keys())[0]]['cloud_cover']
         is_day = self.data[list(self.data.keys())[0]]['is_day']
         rain = self.data[list(self.data.keys())[0]]['rain']
@@ -260,6 +266,9 @@ class WeatherCard(QWidget):
                       f"Wind Speed: {actual_wind_speed:.2f} kmh ({(actual_wind_speed * 0.621371):.2f} mph)  " \
                       f"Rain expected: {rain:.2f} mm  Snow expected: {snowfall:.2f} cm"
 
+        print(f"Args passed\n{tile_paths[season]} {current_temperature} {next_hour_temperature} {cloud_type}\n"
+              f"{mountain_type} {season} {is_windy} {wind_speed} {is_lightning} {lightning_strikes}\n"
+              f"{weather_effects} {weather_type} {weather_intensity}\n{screen_text}")
         screen_init(tile_paths[season], current_temperature, next_hour_temperature, cloud_type, mountain_type, season,
                     is_windy, wind_speed, is_lightning, lightning_strikes, weather_effects, weather_type,
                     weather_intensity, screen_text, 1200, 800)
